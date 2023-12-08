@@ -1,25 +1,30 @@
 import { BookModel } from "./model.mjs";
 import {CreateBookSchema} from "../../lib/schema/bookAPISchema.mjs";
+import env from "../../lib/env.mjs"
+
 export const getAllBooks = async (request, response) => {
     const searchInput = request.query.searchInput;
+    let books = []
     if (!searchInput) {
-        const books = await BookModel.find({});
-        return response.status(200).json({ books: books });
+        books = await BookModel.find({});
     }
     else {
-        const books = await BookModel.find({
+        books = await BookModel.find({
             $or: [
                 { title: { $regex: searchInput, $options: "i" } },
                 { author: { $regex: searchInput, $options: "i" } },
                 { genre: { $regex: searchInput, $options: "i" } },
             ],
         });
-        return response.status(200).json({ books: books });
     }
+    books.map((book)=>{book.image = `${env.MEDIA_URL}/public/${book.image}` })
+    return response.status(200).json({ books: books });
+
 };
 export const getBookById = async (request, response) => {
     try {
         const book = await BookModel.findById(request.params.id).exec();
+        book.image = `${env.MEDIA_URL}/public/${book.image}`
         return response.status(200).json(book);
     }
     catch (err) {

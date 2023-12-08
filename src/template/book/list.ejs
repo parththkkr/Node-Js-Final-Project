@@ -95,7 +95,7 @@
                     window.location.href = `/book/detail/${book._id}`;
                 };
                 card.innerHTML = `
-                  <img class="card-img-top" src="http://localhost:3000/public/${book.image}" height="350" alt="">
+                  <img class="card-img-top" src="${book.image}" height="350" alt="">
                    <div class="card-body">
                         <h5 class="card-title">${book.title} by ${book.author}</h5>
                         <h5 class="card-title">${book.price}</h5>

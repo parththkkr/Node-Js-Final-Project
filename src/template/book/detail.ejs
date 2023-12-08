@@ -140,7 +140,7 @@
             const bookData = response.data;
             console.log(bookData, "bookData>>>>>>>>>")
             // Update the book details on the page
-            document.getElementById('bookImage').src = `http://localhost:3000/public/${bookData.image}`;
+            document.getElementById('bookImage').src = bookData.image;
             document.getElementById('bookTitle').textContent = bookData.title;
             document.getElementById('bookDescription').textContent = bookData.description;
             document.getElementById('bookPrice').textContent = `$${bookData.price.toFixed(2)}`;
