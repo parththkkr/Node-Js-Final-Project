@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "nodemon www/server.mjs",
+    "start": "node www/server.mjs",
+    "start:dev": "nodemon www/server.mjs",
     "createAdmin": "node ./src/users/createAdmin.mjs"
   },
   "author": "Parth Thakkar",
