@@ -136,7 +136,7 @@
             const urlParts = window.location.pathname.split('/');
             const bookId = urlParts[urlParts.length - 1];
 
-            const response = await axios.get(`http://localhost:3000/api/v1/book/detail/${bookId}`, {headers: headers});
+            const response = await axios.get(`/api/v1/book/detail/${bookId}`, {headers: headers});
             const bookData = response.data;
             console.log(bookData, "bookData>>>>>>>>>")
             // Update the book details on the page
@@ -164,7 +164,7 @@
         const bookId = urlParts[urlParts.length - 1];
         const quantity = document.getElementById('quantity').value;
         try {
-            const response = await axios.post(`http://localhost:3000/api/v1/order/create/`,{bookId: bookId, quantity: quantity} , {headers: headers});
+            const response = await axios.post(`/api/v1/order/create/`,{bookId: bookId, quantity: quantity} , {headers: headers});
             successSpan.innerText = "Added to cart"
         } catch (err) {
             if (['401', '403'].includes(`${err.response.status}` || '')) {
