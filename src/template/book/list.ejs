@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>Book List</title>
+    <style>
+        .card-deck {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Bookstore</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="bookLink">Book</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/order/active" id="cartLink">Cart</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/login" id="cartLink">Logout</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="container mt-4">
+    <h2>Book List</h2>
+
+    <!-- Search bar -->
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" placeholder="Search books" id="searchInput">
+        <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button" onclick="searchBooks()">Search</button>
+        </div>
+    </div>
+
+    <!-- Book card list -->
+    <div class="row" id="bookList" style="justify-content: flex-start">
+    </div>
+
+    <!-- Pagination -->
+    <ul class="pagination justify-content-center" id="pagination"></ul>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+    const itemsPerPage = 20;
+    let currentPage = 1;
+    let books = [];
+
+    // Initial render
+    renderBooks();
+
+    // Function to render books based on current.ejs page
+    async function renderBooks(searchInput) {
+        try {
+            const token = localStorage.getItem("token")
+            const headers = {
+                "Authorization": `JWT ${token}`,
+                'Content-Type': 'application/json',
+            }
+            const response = await axios.get(`/api/v1/book/list${searchInput ? `?searchInput=${searchInput}` : ''}`, {headers: headers})
+            books = response.data.books;
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentBooks = books.slice(startIndex, endIndex);
+
+            const bookListElement = document.getElementById("bookList");
+            bookListElement.innerHTML = ""; // Clear previous content
+
+            currentBooks.forEach(book => {
+                const col = document.createElement("div");
+                col.classList.add("col-md-3", "m-4");
+                col.style.height = "600px"
+
+                const card = document.createElement("div");
+                card.classList.add("card");
+                card.style.height = "100%"
+                card.style.width = "18rem"
+                card.onclick = function() {
+                    window.location.href = `/book/detail/${book._id}`;
+                };
+                card.innerHTML = `
+                  <img class="card-img-top" src="http://localhost:3000/public/${book.image}" height="350" alt="">
+                   <div class="card-body">
+                        <h5 class="card-title">${book.title} by ${book.author}</h5>
+                        <h5 class="card-title">${book.price}</h5>
+                        <p class="card-title">Available: ${book.stock}</p>
+                        <p class="card-title">Genere: ${book.genre}</p>
+                        <p class="card-text">${book.description}</p>
+                   </div>
+                `
+                col.appendChild(card)
+                bookListElement.appendChild(col);
+            });
+
+            // Render pagination
+            // renderPagination();
+        } catch (err) {
+            if(['401', '403'].includes(`${err.response.status}` || '')) {
+                window.location.href = "/login"
+            } else {
+                alert("Something went wrong" || err.response.message)
+            }
+        }
+    }
+
+    // Function to search books
+    function searchBooks() {
+        const searchInput = document.getElementById("searchInput").value.toLowerCase();
+        renderBooks(searchInput);
+    }
+</script>
+
+</body>
+</html>

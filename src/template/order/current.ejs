@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Current Order</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Add your custom styles or use a separate CSS file for customization -->
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <a class="navbar-brand" href="#">Bookstore</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" href="/book/list" id="bookLink">Book</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/order/active" id="cartLink">Cart</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/login" id="cartLink">Logout</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <h2>Current Order</h2>
+  <button class="btn btn-warning float-right" id="previousOrderBtn" onclick="previousOrders()">Previous Orders</button>
+  <button class="btn btn-danger float-right" id="removeOrderBtn" onclick="removeOrder()">Remove Order</button>
+  <table class="table" id="ordTable">
+    <thead>
+      <tr>
+        <th>Book ID</th>
+        <th>Title</th>
+        <th>Quantity</th>
+        <th>Price per item</th>
+        <th>Total Price</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="orderItems">
+    </tbody>
+  </table>
+  <button class="btn btn-success float-right" id="placeOrderBtn" onclick="placeOrder()">Place Order</button>
+  <span id="generalSuccess" class="text-success"></span>
+  <span id="generalError" class="text-danger"></span>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+  // Replace this with actual data from your server or API
+  let bookData = []
+
+  const successSpan = document.getElementById("generalSuccess")
+  const errorSpan = document.getElementById("generalError")
+
+  function clearMessages() {
+    successSpan.innerText = "";
+    errorSpan.innerText = "";
+  }
+
+  setInterval(clearMessages, 3000);
+
+  async function fetchOrder(){
+    try {
+      const token = localStorage.getItem("token")
+      const headers = {
+        "Authorization": `JWT ${token}`,
+        'Content-Type': 'application/json',
+      }
+      const response =  await axios.get("/api/v1/order/current", {headers: headers})
+      return response.data
+    } catch (err) {
+      if(['401', '403'].includes(`${err.response.status}` || '')) {
+        window.location.href = "/login"
+      } else {
+        if(err.response.status !== 404){
+          errorSpan.innerText = err.response.message || "Something went wrong"
+        }
+      }
+    }
+  }
+
+  // Function to render order items
+  async function renderOrderItems() {
+    const order = await fetchOrder()
+    if(order){
+      bookData = order.bookData
+    } else {
+      bookData = []
+    }
+    const orderItemsContainer = document.getElementById('orderItems');
+    orderItemsContainer.innerHTML = '';
+
+    // No data
+    if(bookData.length === 0 ){
+      const placeOrderBtn = document.getElementById("placeOrderBtn")
+      const removeOrderBtn = document.getElementById("removeOrderBtn")
+      placeOrderBtn.disabled = true
+      removeOrderBtn.disabled = true
+      const spanElement = document.createElement('span');
+      spanElement.innerText = "No Active Orders!"
+      orderItemsContainer.appendChild(spanElement)
+    }
+    // data
+    bookData.forEach((item) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.bookId}</td>
+        <td>${item.title}</td>
+        <td>
+          <span id="quantity-${item.bookId}">${item.quantity}</span>
+          <input type="number" id="editable-quantity-${item.bookId}" style="display: none" value="${item.quantity}">
+        </td>
+        <td>${item.price}</td>
+        <td>${(item.price * item.quantity).toFixed(2)}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="toggleEditQuantity('${item.bookId}')">Edit Quantity</button>
+          <button class="btn btn-sm btn-success" onclick="saveQuantity('${item.bookId}')">Save</button>
+          <button class="btn btn-sm btn-danger" onclick="removeBook('${item.bookId}')">Remove Book</button>
+        </td>
+      `;
+      orderItemsContainer.appendChild(row);
+    });
+    if(bookData.length){
+      const table = document.getElementById("ordTable")
+      const totalRow = table.insertRow();
+      totalRow.innerHTML = `<td colspan="4">Total:</td><td>${order.totalPrice.toFixed(2)}</td><td></td>`;
+    }
+  }
+
+  function toggleEditQuantity(bookId) {
+    const quantitySpan = document.getElementById(`quantity-${bookId}`);
+    const editableQuantityInput = document.getElementById(`editable-quantity-${bookId}`);
+
+    quantitySpan.style.display = 'none';
+    editableQuantityInput.style.display = 'block';
+  }
+
+  async function updateCart(bookId, quantity) {
+    const token = localStorage.getItem("token")
+    const headers = {
+      "Authorization": `JWT ${token}`,
+      'Content-Type': 'application/json',
+    }
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/order/create/`,{bookId: bookId, quantity: quantity} , {headers: headers});
+      bookData = response.date.bookData
+      successSpan.innerText = "Cart Updated"
+    } catch (err) {
+      if (['401', '403'].includes(`${err.response.status}` || '')) {
+        window.location.href = "/login"
+      } else {
+        errorSpan.innerText = err.response.message || "Something went wrong"
+      }
+    }
+  }
+
+  function saveQuantity(bookId) {
+    const quantitySpan = document.getElementById(`quantity-${bookId}`);
+    const editableQuantityInput = document.getElementById(`editable-quantity-${bookId}`);
+
+    const newQuantity = editableQuantityInput.value;
+    if(parseInt(newQuantity) <= 0){
+      errorSpan.innerText = "Quantity can't be in negative or zero"
+      return
+    }
+    quantitySpan.innerText = newQuantity;
+
+    quantitySpan.style.display = 'inline';
+    editableQuantityInput.style.display = 'none';
+    updateCart(bookId, newQuantity)
+    renderOrderItems()
+  }
+
+  async function removeOrder() {
+    const token = localStorage.getItem("token")
+    const headers = {
+      "Authorization": `JWT ${token}`,
+      'Content-Type': 'application/json',
+    }
+    try {
+      await axios.delete(`http://localhost:3000/api/v1/order/delete`, {headers: headers});
+      successSpan.innerText = "Order Removed"
+      await renderOrderItems()
+    } catch (err) {
+      if (['401', '403'].includes(`${err.response.status}` || '')) {
+        window.location.href = "/login"
+      } else {
+        errorSpan.innerText = err.response.message || "Something went wrong"
+      }
+    }
+  }
+
+  async function removeBook(bookId) {
+    const confirmation = confirm("Are you sure do you want to remove this book?")
+    if(confirmation){
+      const token = localStorage.getItem("token")
+      const headers = {
+        "Authorization": `JWT ${token}`,
+        'Content-Type': 'application/json',
+      }
+      try {
+        await axios.patch(`http://localhost:3000/api/v1/order/remove/book/${bookId}`, {}, {headers: headers});
+        successSpan.innerText = "Order Removed"
+        await renderOrderItems()
+      } catch (err) {
+        // if (['401', '403'].includes(`${err.response.status}` || '')) {
+        //   window.location.href = "/login"
+        // } else {
+        //   errorSpan.innerText = err.response.message || "Something went wrong"
+        // }
+      }
+    }
+  }
+
+  async function placeOrder() {
+    const token = localStorage.getItem("token")
+    const headers = {
+      "Authorization": `JWT ${token}`,
+      'Content-Type': 'application/json',
+    }
+    try {
+      await axios.patch(`http://localhost:3000/api/v1/order/place`, {}, {headers: headers});
+      successSpan.innerText = "Order Placed"
+      await renderOrderItems()
+    } catch (err) {
+      if (['401', '403'].includes(`${err.response.status}` || '')) {
+        window.location.href = "/login"
+      } else {
+        errorSpan.innerText = err.response.message || "Something went wrong"
+      }
+    }
+  }
+  async function previousOrders(){
+    window.location.href = '/orders/user';
+  }
+
+  // Initial render
+  renderOrderItems();
+</script>
+</body>
+</html>

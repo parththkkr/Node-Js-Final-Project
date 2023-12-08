@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Listing</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Bookstore</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="/book/list" id="bookLink">Book</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/order/active" id="cartLink">Cart</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/login" id="cartLink">Logout</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container mt-4">
+  <h2>User Orders</h2>
+    <table id="orderTable">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Total Price</th>
+          <th>Order Placed</th>
+          <th>Order Date</th>
+        </tr>
+      </thead>
+      <tbody id="orderTableBody"></tbody>
+    </table>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    // Assuming orders is an array of order objects
+    let orders = [];
+
+    async function fetchOrders(){
+      try {
+        const token = localStorage.getItem("token")
+        const headers = {
+          "Authorization": `JWT ${token}`,
+          'Content-Type': 'application/json',
+        }
+        const response = await axios.get("/api/v1/order/list", { headers: headers })
+        console.log(response.data, "response.data>>>>>>>>>")
+        return response.data
+      } catch (err) {
+        if(['401', '403'].includes(`${err.response.status}` || '')) {
+          window.location.href = "/login"
+        } else {
+          alert("Something went wrong" || err.response.message)
+        }
+      }
+    }
+
+    async function renderOrders() {
+      const tableBody = document.getElementById("orderTableBody");
+      orders = (await fetchOrders()).orders
+      console.log("orders>>>>", orders)
+      if(!orders.length){
+        const span = document.createElement("span");
+        span.innerText = "No orders"
+        tableBody.appendChild(span)
+      }
+
+      orders.forEach((order) => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${order.bookData.map(book => `${book.title} (ID: ${book.bookId})`).join('<br>')}</td>
+          <td>${order.bookData.map(book => book.quantity).join('<br>')}</td>
+          <td>${order.bookData.map(book => `$${book.price.toFixed(2)}`).join('<br>')}</td>
+          <td>$${order.totalPrice.toFixed(2)}</td>
+          <td>${order.orderPlaced ? 'Yes' : 'No'}</td>
+          <td>${new Date(order.orderDate * 1000)}</td>
+        `;
+
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Call the function to render orders on page load
+    renderOrders();
+  </script>
+</body>
+</html>
